@@ -1,0 +1,23 @@
+{
+  // Build artifacts are auto-generated on every build — never lint, format or
+  // watch them. This keeps the Problems panel clean (Tailwind preflight rules
+  // such as `-webkit-appearance` and `vertical-align` live only in dist CSS).
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/backend/dist/**": true,
+    "**/backend/data/**": true,
+    "**/backend/uploads/**": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/backend/dist": true,
+    "**/package-lock.json": true,
+    "**/install.log": true
+  },
+  // The app is served by the Vite dev server (port 5173), not VS Code Live Server.
+  "liveServer.settings.port": 5500,
+  "liveServer.settings.ignoreFiles": ["**/dist/**", "**/node_modules/**"],
+  "liveServer.settings.donotShowInfoMsg": true
+}
