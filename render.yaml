@@ -1,0 +1,21 @@
+# Render.com Blueprint for the LinkIntel AI backend API.
+# Push this repo, then in Render: New -> Blueprint -> select this repo.
+services:
+  - type: web
+    name: linkintel-api
+    rootDir: backend
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: PORT
+        value: "5000"
+      - key: DATABASE_PATH
+        value: /tmp/linkintel.db
+      # Set these two in the Render dashboard after the first deploy:
+      # - CLIENT_URL: your deployed frontend URL (e.g. https://linkintel-ai.vercel.app)
+      # - GEMINI_API_KEY: optional — enables live AI analysis

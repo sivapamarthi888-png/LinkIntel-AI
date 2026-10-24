@@ -99,9 +99,19 @@ Consistent JSON errors: `{ error: string, details?: [{ field, message }] }` with
 
 ## Deployment
 
-**Frontend → Vercel:** the repo root has `vercel.json` (`rootDirectory: frontend`, build `npm run build`, output `dist`, SPA rewrites). Deploy the repo to Vercel and it works.
+The GitHub URL (`github.com/<you>/LinkIntel-AI`) shows the **source code** — for a live website, deploy it. Two-part deploy (~10 minutes, both have free tiers):
 
-**Backend → any Node host:** `cd backend && npm install && npm run build && npm start` (serves on `PORT`, default 5000). Configure `CLIENT_URL` for CORS and `DATABASE_PATH` for persistent storage.
+**Backend → Render:** push this repo, then in [Render](https://dashboard.render.com) choose *New → Blueprint* — it reads `render.yaml` and deploys the API (`buildCommand`, `startCommand`, health check are preconfigured). Note the URL it gives you (e.g. `https://linkintel-api.onrender.com`). Then in the service's *Environment* settings add `CLIENT_URL` = your frontend URL (for CORS), and optionally `GEMINI_API_KEY`.
+
+**Frontend → Vercel:** go to [vercel.com/new](https://vercel.com/new) and import your GitHub repository — the included `vercel.json` sets `rootDirectory: frontend`, build command and SPA rewrites automatically. Before clicking Deploy, add an environment variable:
+
+| Key | Value |
+|---|---|
+| `VITE_API_BASE_URL` | `https://<your-render-backend-url>/api` |
+
+Hit Deploy → you get a live URL like `https://linkintel-ai.vercel.app`. Deployments auto-redeploy on every future `git push`.
+
+**Local HTTPS custom domain (optional):** both hosts let you attach a custom domain if you own one (e.g. `linkintel.app`).
 
 ## Routes
 

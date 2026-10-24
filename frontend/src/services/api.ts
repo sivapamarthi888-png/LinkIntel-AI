@@ -1,9 +1,16 @@
 import axios from 'axios';
 
-// All API calls go through the Vite dev proxy to the backend.
+// API base URL:
+// - Local dev: relative '/api' goes through the Vite dev proxy to localhost:5000.
+// - Production: set VITE_API_BASE_URL (e.g. https://linkintel-api.onrender.com/api)
+//   at build time on the host (Vercel/Netlify) so the deployed frontend targets
+//   the hosted backend.
+const apiBase = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/+$/, '');
+
+// All API calls go through this single axios instance.
 // No secrets are embedded here — Gemini keys live only on the backend.
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: apiBase,
   timeout: 90_000,
 });
 
