@@ -1,6 +1,7 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
+import { FREEMAIL_DOMAINS, extractDomain, guessCompanyDomain } from '../services/domainUtils.js';
 
 const router = express.Router();
 
@@ -17,44 +18,6 @@ const verificationInputSchema = z.object({
   jobListingUrl: z.string().max(1000).optional().default(''),
   officialCareersUrl: z.string().max(1000).optional().default(''),
 });
-
-// Freemail domains — a freemail domain is a mild signal only, never proof of fraud
-const FREEMAIL_DOMAINS = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com', 'icloud.com', 'protonmail.com', 'mail.ru', 'yandex.com'];
-
-function extractDomain(input: string): string | null {
-  try {
-    const trimmed = input.trim().toLowerCase();
-    // If it's a URL, parse the hostname
-    if (trimmed.includes('://')) {
-      const url = new URL(trimmed);
-      return url.hostname.replace(/^www\./, '');
-    }
-    // If it's an email address
-    if (trimmed.includes('@')) {
-      return trimmed.split('@')[1] || null;
-    }
-    // Treat as bare domain
-    if (/^[a-z0-9.-]+\.[a-z]{2,}$/.test(trimmed)) {
-      return trimmed;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-function guessCompanyDomain(companyName: string): string[] {
-  // Generate plausible candidate domains for manual checking — these are
-  // SUGGESTIONS for the user to verify, never assertions.
-  const slug = companyName
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .trim()
-    .split(/\s+/)
-    .join('');
-  if (!slug) return [];
-  return [`${slug}.com`, `${slug}.io`, `${slug}.co`];
-}
 
 router.post('/', verificationLimiter, (req, res) => {
   const parseResult = verificationInputSchema.safeParse(req.body);

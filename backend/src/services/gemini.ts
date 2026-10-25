@@ -32,6 +32,8 @@ export async function generateTextWithPrompt(
     topP?: number;
     maxOutputTokens?: number;
     systemInstruction?: string;
+    /** Enables Google Search grounding — model can look facts up live. JSON response mime type is disabled in this mode. */
+    useGoogleSearch?: boolean;
   } = {}
 ): Promise<GenerateContentResponse | null> {
   const {
@@ -40,6 +42,7 @@ export async function generateTextWithPrompt(
     topP = 0.95,
     maxOutputTokens = 2048,
     systemInstruction = undefined,
+    useGoogleSearch = false,
   } = optionalConfig;
 
   if (!aiClient) return null;
@@ -62,7 +65,9 @@ export async function generateTextWithPrompt(
             topP: topP,
             maxOutputTokens: maxOutputTokens,
             ...(systemInstruction ? { systemInstruction } : {}),
-            responseMimeType: 'application/json',
+            ...(useGoogleSearch
+              ? { tools: [{ googleSearch: {} }] }
+              : { responseMimeType: 'application/json' }),
           },
         });
         clearTimeout(timer);

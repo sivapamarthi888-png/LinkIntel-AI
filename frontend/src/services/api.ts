@@ -29,6 +29,28 @@ export function extractApiError(error: unknown): string {
   return 'Unexpected error';
 }
 
+export interface CompanyCheckResult {
+  companyName: string;
+  webPresence: 'found' | 'not-found' | 'uncertain';
+  foundDomain: string | null;
+  logoUrl: string | null;
+  verdict: string;
+  verdictLevel: 'ok' | 'warn' | 'danger';
+  probes: {
+    domain: string;
+    source: 'company-name' | 'recruiter-email';
+    resolves: boolean | null;
+    websiteResponded: boolean | null;
+    httpStatus: number | null;
+  }[];
+  emailDomain: string | null;
+  emailDomainIsFreemail: boolean;
+  signals: string[];
+  checksPerformed: string[];
+  aiWebSearch: { status: 'performed' | 'failed'; summary: string; sources: string[] } | null;
+  disclaimer: string;
+}
+
 export interface JobAnalysisResult {
   id: string;
   riskCategory: 'Low' | 'Medium' | 'High';
@@ -42,6 +64,7 @@ export interface JobAnalysisResult {
   analysisType: string;
   analysisTimestamp: string;
   uncertaintyDisclaimer: string;
+  companyCheck?: CompanyCheckResult;
 }
 
 export interface SkillMatchResult {

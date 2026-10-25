@@ -105,7 +105,7 @@ describe('JobAnalyzer', () => {
     renderPage()
     fireEvent.click(screen.getByRole('button', { name: /ordinary sample/i }))
     fireEvent.click(screen.getByRole('button', { name: /analyze job/i }))
-    expect(await screen.findByText(/evaluating warning signs/i)).toBeInTheDocument()
+    expect(await screen.findByText(/checking the company online/i)).toBeInTheDocument()
     resolve({ data: filledAnalysis })
     await waitFor(() => expect(screen.getByText('High Risk')).toBeInTheDocument())
   })
@@ -119,5 +119,50 @@ describe('JobAnalyzer', () => {
     await waitFor(() => {
       expect(mockedApi.post).toHaveBeenCalled()
     })
+  })
+
+  it('shows the live company background check when present in the result', async () => {
+    mockedApi.post.mockResolvedValueOnce({
+      data: {
+        ...filledAnalysis,
+        companyCheck: {
+          companyName: 'Tctctc',
+          webPresence: 'not-found',
+          foundDomain: null,
+          logoUrl: null,
+          verdict: 'No verifiable online presence found — treat with strong caution',
+          verdictLevel: 'danger',
+          probes: [
+            { domain: 'tctctc.com', source: 'company-name', resolves: false, websiteResponded: false, httpStatus: null },
+            { domain: 'tctctc.io', source: 'company-name', resolves: false, websiteResponded: false, httpStatus: null },
+          ],
+          emailDomain: null,
+          emailDomainIsFreemail: false,
+          signals: ['None of the likely domains (tctctc.com, tctctc.io) resolve in public DNS.'],
+          checksPerformed: ['DNS resolution lookup of candidate domains'],
+          aiWebSearch: null,
+          disclaimer: 'This is a live DNS/website probe, NOT a company-registry lookup.',
+        },
+      },
+    })
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: /suspicious sample/i }))
+    fireEvent.click(screen.getByRole('button', { name: /analyze job/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/No verifiable online presence found/i)).toBeInTheDocument()
+    })
+    expect(screen.getByText(/Company background check \(live\)/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/tctctc\.com/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/does not exist in public DNS/i).length).toBeGreaterThan(0)
+  })
+
+  it('does not render the company panel when the API omitted it (tests still pass)', async () => {
+    mockedApi.post.mockResolvedValueOnce({ data: filledAnalysis })
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: /ordinary sample/i }))
+    fireEvent.click(screen.getByRole('button', { name: /analyze job/i }))
+    await waitFor(() => expect(screen.getByText('High Risk')).toBeInTheDocument())
+    expect(screen.queryByText(/Company background check/i)).not.toBeInTheDocument()
   })
 })

@@ -8,10 +8,99 @@ import {
   Lightbulb,
   MessageCircleQuestion,
   ClipboardCopy,
+  Globe,
+  HelpCircle,
 } from 'lucide-react';
-import api, { extractApiError, JobAnalysisResult } from '../services/api';
+import api, { extractApiError, JobAnalysisResult, CompanyCheckResult } from '../services/api';
 import { PageHeader, Card, CardHeader, Input, Textarea, Label, Button, ScoreGauge } from '../components';
 import { RiskBadge, AnalysisTypeLabel } from '../components/RiskBadge';
+
+function CompanyCheckPanel({ check }: { check: CompanyCheckResult }) {
+  const [logoFailed, setLogoFailed] = useState(false);
+
+  const levelStyles = {
+    danger: 'border-rose-200 bg-rose-50 text-rose-800',
+    warn: 'border-amber-200 bg-amber-50 text-amber-800',
+    ok: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+  } as const;
+
+  const domainState = (p: CompanyCheckResult['probes'][number]) => {
+    if (p.resolves === true && p.websiteResponded === true) return { icon: '✓', text: `Website live (HTTP ${p.httpStatus ?? ''})`, cls: 'text-emerald-700' };
+    if (p.resolves === true) return { icon: '✓', text: 'Domain resolves, website did not respond', cls: 'text-amber-700' };
+    if (p.resolves === false) return { icon: '✗', text: 'Domain does not exist in public DNS', cls: 'text-rose-700' };
+    return { icon: '?', text: 'Check inconclusive (timeout/blocked)', cls: 'text-gray-500' };
+  };
+
+  return (
+    <section aria-label="Company background check" className={`rounded-lg border p-4 ${levelStyles[check.verdictLevel]}`}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="flex items-center gap-1.5 text-sm font-semibold">
+            <Globe className="h-4 w-4" aria-hidden="true" /> Company background check (live)
+          </h3>
+          <p className={`mt-1 text-sm font-medium ${check.verdictLevel === 'danger' ? 'text-rose-900' : ''}`}>{check.verdict}</p>
+        </div>
+        {check.logoUrl && !logoFailed && (
+          <img
+            src={check.logoUrl}
+            alt={`Web icon found for ${check.foundDomain}`}
+            className="h-12 w-12 rounded-lg border border-white/60 bg-white object-contain p-1"
+            onError={() => setLogoFailed(true)}
+          />
+        )}
+      </div>
+
+      <ul className="mt-2 space-y-1 text-xs">
+        {check.probes.map((p) => {
+          const st = domainState(p);
+          return (
+            <li key={p.domain} className="flex items-start gap-1.5">
+              <span aria-hidden="true" className="font-bold">{st.icon}</span>
+              <span>
+                <span className="font-mono font-semibold">{p.domain}</span>{' '}
+                <span className={st.cls}>({st.text}; {p.source === 'recruiter-email' ? 'from recruiter email' : 'from company name'})</span>
+              </span>
+            </li>
+          );
+        })}
+        {check.emailDomain && check.emailDomainIsFreemail && (
+          <li className="flex items-start gap-1.5">
+            <span aria-hidden="true" className="font-bold">!</span>
+            <span>
+              Recruiter email uses the free personal domain <span className="font-mono font-semibold">{check.emailDomain}</span>
+            </span>
+          </li>
+        )}
+      </ul>
+
+      <div className="mt-2 space-y-1.5 text-xs">
+        {check.signals.map((s, i) => (
+          <p key={i}>{s}</p>
+        ))}
+        {check.aiWebSearch?.status === 'performed' && (
+          <p>
+            {check.aiWebSearch.summary}
+            {check.aiWebSearch.sources.length > 0 && (
+              <span className="ml-1 text-[11px] opacity-80">Sources: {check.aiWebSearch.sources.join(', ')}</span>
+            )}
+          </p>
+        )}
+      </div>
+
+      <details className="mt-2">
+        <summary className="flex cursor-pointer items-center gap-1 text-xs font-medium underline-offset-2 hover:underline">
+          <HelpCircle className="h-3.5 w-3.5" aria-hidden="true" /> What was checked automatically
+        </summary>
+        <ul className="mt-1 list-disc space-y-0.5 pl-5 text-[11px]">
+          {check.checksPerformed.map((c, i) => (
+            <li key={i}>{c}</li>
+          ))}
+        </ul>
+        <p className="mt-1 text-[11px] opacity-80">{check.disclaimer}</p>
+      </details>
+    </section>
+  );
+}
 
 const initialForm = {
   jobTitle: '',
@@ -75,6 +164,14 @@ export default function JobAnalyzer() {
       `Job title: ${formData.jobTitle}`,
       `Company: ${formData.companyName}`,
       ``,
+      ...(result.companyCheck
+        ? [
+            `Company background check (live DNS/website probe): ${result.companyCheck.verdict}`,
+            ...result.companyCheck.signals.map((s) => `- ${s}`),
+            result.companyCheck.disclaimer,
+            ``,
+          ]
+        : []),
       `Risk category: ${result.riskCategory}`,
       `Risk score: ${result.riskScore}/100 (estimate, not proof)`,
       ``,
@@ -113,7 +210,7 @@ export default function JobAnalyzer() {
     <div>
       <PageHeader
         title="AI Job Scam Detector"
-        subtitle="Paste any job posting or recruiter message to surface potential warning signs — with evidence and next steps."
+        subtitle="Paste any job posting or recruiter message to surface potential warning signs — with evidence and next steps. The company's online presence is checked live in the background with every analysis."
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -192,7 +289,7 @@ export default function JobAnalyzer() {
             <Card className="flex h-full items-center justify-center">
               <div className="text-center" aria-busy="true">
                 <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600" aria-hidden="true" />
-                <p className="mt-3 text-sm text-gray-500">Evaluating warning signs…</p>
+                <p className="mt-3 text-sm text-gray-500">Analyzing warning signs and checking the company online…</p>
               </div>
             </Card>
           )}
@@ -215,6 +312,10 @@ export default function JobAnalyzer() {
                   <ScoreGauge score={result.riskScore} />
                   <p className="text-center text-sm text-gray-700">{result.shortExplanation}</p>
                 </div>
+
+                {result.companyCheck && (
+                  <CompanyCheckPanel check={result.companyCheck} />
+                )}
 
                 {result.detectedWarningSigns && result.detectedWarningSigns.length > 0 ? (
                   <section aria-label="Warning signs">

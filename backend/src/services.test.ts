@@ -95,6 +95,7 @@ describe('skillMatch rule sanity', () => {
 describe('test infra', () => {
   it('can read the test db directory', () => {
     const dataDir = path.join(process.cwd(), 'data');
-    expect(fs.existsSync(dataDir) || fs.mkdirSync(dataDir, { recursive: true }) === undefined).toBe(true);
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+    expect(fs.existsSync(dataDir)).toBe(true);
   });
 });
